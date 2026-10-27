@@ -7,7 +7,7 @@
 const state = {
   selected: [],
   reserved: false,
-  purchased: JSON.parse(localStorage.getItem('gatehouseTickets') || '[]'),
+  purchased: (() => { try { return JSON.parse(localStorage.getItem('gatehouseTickets') || '[]'); } catch { return []; } })(),
   reservationRemaining: 300,
   queuePosition: 12482,
   queuePercent: 31,
@@ -151,8 +151,29 @@ state.purchased.forEach(ticket => {
 // Currency Formatter
 const fmt = amount => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
 
+// HTML Entity Escaping (XSS Prevention)
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
 // SPA Router
 function route(id) {
+  // Clear all running timers to prevent leaks
+  clearInterval(window.reserveTimer);
+  clearInterval(window.queueTimer);
+  clearInterval(window.qrInterval);
+  clearTimeout(window.expiryRedirectTimer);
+  
+  // Close any open modals
+  document.querySelectorAll('.modal.open').forEach(m => {
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+  });
+
+  // Close mobile nav on route change
+  const mobileNav = document.querySelector('.topbar nav');
+  const menuToggleBtn = document.getElementById('menuToggle');
+  if (mobileNav) mobileNav.classList.remove('open');
+  if (menuToggleBtn) menuToggleBtn.setAttribute('aria-expanded', 'false');
+
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const targetView = document.getElementById(id);
   if (targetView) {
@@ -189,8 +210,8 @@ function renderEvents() {
     <article class="event-tile" data-action="open-event" data-event-id="${e.id}">
       <div class="tile-image ${e.c}"></div>
       <div class="tile-info">
-        <p>${e.date}</p>
-        <h3>${e.name}</h3>
+        <p>${esc(e.date)}</p>
+        <h3>${esc(e.name)}</h3>
       </div>
     </article>
   `
@@ -206,10 +227,10 @@ function renderFullCatalog() {
     .map(
       e => `
     <div class="catalog-card" data-action="open-event" data-event-id="${e.id}">
-      <span class="live-pill">${e.status}</span>
-      <h3>${e.name}</h3>
-      <p>${e.tour}</p>
-      <p style="margin-top:4px;color:var(--lime);">${e.date}</p>
+      <span class="live-pill">${esc(e.status)}</span>
+      <h3>${esc(e.name)}</h3>
+      <p>${esc(e.tour)}</p>
+      <p style="margin-top:4px;color:var(--lime);">${esc(e.date)}</p>
     </div>
   `
     )
@@ -316,7 +337,7 @@ function startTimer() {
 
       toast('Your temporary 5-minute reservation expired.');
       // Auto-reconcile after 2.5s if still on checkout
-      setTimeout(() => {
+      window.expiryRedirectTimer = setTimeout(() => {
         state.selected = [];
         route('select');
         renderSeats();
@@ -339,17 +360,17 @@ function reserve() {
   if (idemDisplay) idemDisplay.textContent = idemKey;
 
   const total = state.selected.reduce((a, id) => {
-    const s = seats.find(s => s.id === id);
-    return a + (s ? s.price : 0);
+    const seat = seats.find(x => x.id === id);
+    return a + (seat ? seat.price : 0);
   }, 0);
 
   const checkoutSeats = document.getElementById('checkoutSeats');
   if (checkoutSeats) {
     checkoutSeats.innerHTML = state.selected
       .map(id => {
-        const s = seats.find(s => s.id === id);
-        const tierName = s ? s.tier : 'Lower Bowl';
-        const priceVal = s ? s.price : 65;
+        const seat = seats.find(x => x.id === id);
+        const tierName = seat ? seat.tier : 'Lower Bowl';
+        const priceVal = seat ? seat.price : 65;
         return `
         <div class="checkout-seat">
           <span><b>${tierName}</b> · Seat ${id}</span>
@@ -374,8 +395,8 @@ function purchase(e) {
   }
 
   const total = state.selected.reduce((a, id) => {
-    const s = seats.find(s => s.id === id);
-    return a + (s ? s.price : 0);
+    const seat = seats.find(x => x.id === id);
+    return a + (seat ? seat.price : 0);
   }, 0);
 
   const orderHex = Math.random().toString(16).slice(2, 8).toUpperCase();
@@ -400,8 +421,8 @@ function purchase(e) {
 
   // Mark authoritative seats unavailable
   state.selected.forEach(id => {
-    const s = seats.find(s => s.id === id);
-    if (s) s.unavailable = true;
+    const seat = seats.find(x => x.id === id);
+    if (seat) seat.unavailable = true;
   });
 
   // Record dynamic trace in operations timeline
@@ -580,7 +601,7 @@ function transferCurrentTicket() {
     totalTime: '185 ms',
     spans: [
       { name: 'Transfer Eligibility Check', duration: '12 ms', detail: 'Original order verified, transfer permitted' },
-      { name: 'Recipient Entitlement Check', duration: '28 ms', detail: `Recipient ${recipient} validated (Level 2)` },
+      { name: 'Recipient Entitlement Check', duration: '28 ms', detail: `Recipient ${esc(recipient)} validated (Level 2)` },
       { name: 'Authoritative Reissue', duration: '64 ms', detail: 'Old cryptographic token revoked; new token minted' },
       { name: 'Outbox Event Logger', duration: '18 ms', detail: 'TransferCompleted dispatched' }
     ],
@@ -656,7 +677,7 @@ function simulateQueue() {
   if (position) position.textContent = state.queuePosition.toLocaleString('en-GB');
   if (percent) percent.textContent = `${state.queuePercent}%`;
   if (fill) fill.style.width = `${state.queuePercent}%`;
-  if (status) status.textContent = 'We’re moving you through securely. Estimated wait: about 8 minutes.';
+  if (status) status.textContent = "We're moving you through securely. Estimated wait: about 8 minutes.";
 
   clearInterval(window.queueTimer);
   window.queueTimer = setInterval(() => {
@@ -669,6 +690,13 @@ function simulateQueue() {
 
     if (state.queuePercent >= 99) {
       if (status) status.textContent = "You're next! We're securely admitting you now...";
+      clearInterval(window.queueTimer);
+      setTimeout(() => {
+        route('select');
+        renderSeats();
+        renderCart();
+        toast('You have been admitted! Choose your seats.');
+      }, 2000);
     }
   }, 1800);
 }
@@ -715,12 +743,12 @@ function renderTraceDetails(traceId) {
   results.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div>
-        <h3 style="margin:0;font-size:18px;">${data.id}</h3>
-        <span style="color:var(--muted);font-size:11px;font-family:var(--mono);">Correlation: ${data.correlationId}</span>
+        <h3 style="margin:0;font-size:18px;">${esc(data.id)}</h3>
+        <span style="color:var(--muted);font-size:11px;font-family:var(--mono);">Correlation: ${esc(data.correlationId)}</span>
       </div>
       <div style="text-align:right;">
-        <span class="badge-tag valid">${data.status}</span>
-        <div style="color:var(--lime);font-family:var(--mono);font-size:12px;margin-top:2px;">Duration: ${data.totalTime}</div>
+        <span class="badge-tag valid">${esc(data.status)}</span>
+        <div style="color:var(--lime);font-family:var(--mono);font-size:12px;margin-top:2px;">Duration: ${esc(data.totalTime)}</div>
       </div>
     </div>
     <div class="trace-span-tree">
@@ -729,10 +757,10 @@ function renderTraceDetails(traceId) {
           s => `
         <div class="trace-span">
           <div class="trace-span-header">
-            <b>${s.name}</b>
-            <span>${s.duration}</span>
+            <b>${esc(s.name)}</b>
+            <span>${esc(s.duration)}</span>
           </div>
-          <p>${s.detail}</p>
+          <p>${esc(s.detail)}</p>
         </div>
       `
         )
@@ -783,9 +811,11 @@ function renderOperationsTimeline() {
     )
     .join('');
 
-  document.querySelectorAll('[data-trace]').forEach(el => {
-    el.addEventListener('click', () => openTraceModal(el.dataset.trace));
-  });
+  // Use delegation on timeline to prevent duplicate listeners
+  timeline.onclick = (ev) => {
+    const link = ev.target.closest('[data-trace]');
+    if (link) openTraceModal(link.dataset.trace);
+  };
 }
 
 // Update Organizer Metrics
@@ -822,6 +852,7 @@ function applyAdmissionPolicy() {
   const algSelect = document.getElementById('policyAlgorithmSelect');
   const rateSlider = document.getElementById('admissionRateSlider');
   const starvationCheck = document.getElementById('starvationToggle');
+  state.starvationEnabled = starvationCheck ? starvationCheck.checked : true;
 
   if (algSelect) state.fairnessMode = algSelect.value;
   if (rateSlider) state.admissionRate = parseInt(rateSlider.value, 10);
@@ -854,6 +885,8 @@ function createEvent(e) {
   const name = document.getElementById('newEventName').value;
   const date = document.getElementById('newEventDate').value;
   const venue = document.getElementById('newEventVenue').value;
+  const vipCap = parseInt(document.getElementById('newVipCap').value, 10) || 250;
+  const lowerCap = parseInt(document.getElementById('newLowerCap').value, 10) || 1200;
 
   const newEvt = {
     id: `evt-${Date.now()}`,
@@ -862,7 +895,9 @@ function createEvent(e) {
     date: `${date} · ${venue.toUpperCase()}`,
     venue,
     c: 'concert',
-    status: 'LIVE SALE'
+    status: 'LIVE SALE',
+    vipAllocation: vipCap,
+    lowerAllocation: lowerCap
   };
 
   state.events.unshift(newEvt);
@@ -870,7 +905,7 @@ function createEvent(e) {
   renderFullCatalog();
 
   document.getElementById('createEventModal').classList.remove('open');
-  toast(`Event "${name}" published with authoritative tier allocations.`);
+  toast(`Event "${esc(name)}" published with authoritative tier allocations.`);
 }
 
 // Global Event Listeners & Router Wiring
@@ -935,6 +970,19 @@ document.addEventListener('click', e => {
   }
 });
 
+// Escape key closes any open modal (WCAG 2.1.1)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const openModal = document.querySelector('.modal.open');
+    if (openModal) {
+      openModal.classList.remove('open');
+      openModal.setAttribute('aria-hidden', 'true');
+      // Stop QR interval if QR modal was closed
+      if (openModal.id === 'qrModal') clearInterval(window.qrInterval);
+    }
+  }
+});
+
 // Setup Form Handlers & DOM Listeners
 document.addEventListener('DOMContentLoaded', () => {
   renderEvents();
@@ -986,9 +1034,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // Create Event Form
   const createEventForm = document.getElementById('createEventForm');
   if (createEventForm) createEventForm.addEventListener('submit', createEvent);
-});
 
-// Run initial renders immediately for inline scripts
-renderEvents();
-renderSeats();
-renderCart();
+  // Mobile navigation hamburger toggle
+  const menuToggle = document.getElementById('menuToggle');
+  const topNav = document.querySelector('.topbar nav');
+  if (menuToggle && topNav) {
+    menuToggle.addEventListener('click', () => {
+      const isOpen = topNav.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+  }
+
+  // Keyboard accessibility for latest ticket stub
+  const latestStub = document.getElementById('latestTicketStub');
+  if (latestStub) {
+    latestStub.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (state.activeQrTicket) openQrModal(state.activeQrTicket);
+        else if (state.purchased.length) openQrModal(state.purchased[0]);
+      }
+    });
+  }
+});

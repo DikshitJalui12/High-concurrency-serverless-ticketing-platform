@@ -750,7 +750,7 @@ main {
 }
 
 .seat.unavailable {
-  background: #29414a;
+  background: #3a5a65;
   cursor: not-allowed;
 }
 
@@ -1134,7 +1134,7 @@ main {
 }
 
 .metric small {
-  color: #7ea49e;
+  color: #94b8b2;
 }
 
 .dashboard-grid {
@@ -1579,10 +1579,48 @@ main {
   transform: translate(-50%, 0);
 }
 
+/* Hamburger Menu */
+.hamburger {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 22px;
+  padding: 6px 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+.hamburger:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
 /* RESPONSIVE MEDIA QUERIES */
 @media (max-width: 800px) {
+  .hamburger {
+    display: block;
+  }
   .topbar nav {
     display: none;
+    position: absolute;
+    top: 74px;
+    left: 0;
+    right: 0;
+    background: rgba(7, 21, 31, 0.97);
+    backdrop-filter: blur(18px);
+    flex-direction: column;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    z-index: 5;
+  }
+  .topbar nav.open {
+    display: flex;
+  }
+  .topbar nav .nav-link {
+    padding: 12px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
   }
   main {
     padding: 0 18px 40px;

@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#07151f" />
+    <meta name="description" content="Gatehouse — Fair, transparent event ticketing at scale. Protected waiting rooms, rotating QR credentials, and zero overselling." />
+    <meta property="og:title" content="Gatehouse — Fair ticketing at scale" />
+    <meta property="og:description" content="Tickets for the shows you want to see, protected by a queue designed for people—not scripts. Zero overselling, rotating QR credentials." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://gatehouse.live/og-preview.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://gatehouse.live/" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23c6f64d'/%3E%3Ctext x='50' y='68' text-anchor='middle' font-size='55' font-weight='700' font-family='serif' fill='%23071520'%3EG%3C/text%3E%3C/svg%3E" />
     <title>Gatehouse — Fair ticketing at scale</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,6 +22,7 @@
     <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
     <header class="topbar">
       <a class="brand" href="#" data-route="discover"><span class="brand-mark">G</span><span>gatehouse</span></a>
+      <button class="hamburger" id="menuToggle" aria-label="Toggle navigation menu" aria-expanded="false">☰</button>
       <nav aria-label="Primary navigation">
         <button class="nav-link active" data-route="discover">Discover</button>
         <button class="nav-link" data-route="tickets">My tickets</button>
@@ -210,14 +219,14 @@
               <input id="cardName" required type="text" autocomplete="cc-name" value="Dikshit Kumar" />
             </label>
             <label>Card number
-              <input id="cardNumber" required type="text" inputmode="numeric" autocomplete="cc-number" maxlength="19" value="4242 4242 4242 4242" />
+              <input id="cardNumber" required type="text" inputmode="numeric" autocomplete="cc-number" maxlength="19" value="4242 4242 4242 4242" pattern="[0-9 ]{13,19}" />
             </label>
             <div class="form-row">
               <label>Expiry
-                <input id="cardExpiry" required type="text" autocomplete="cc-exp" maxlength="7" value="09 / 29" />
+                <input id="cardExpiry" required type="text" autocomplete="cc-exp" maxlength="7" value="09 / 29" pattern="(0[1-9]|1[0-2])\s*/\s*[0-9]{2,4}" />
               </label>
               <label>CVC
-                <input id="cardCvc" required type="text" inputmode="numeric" autocomplete="cc-csc" maxlength="4" value="123" />
+                <input id="cardCvc" required type="text" inputmode="numeric" autocomplete="cc-csc" maxlength="4" value="123" pattern="[0-9]{3,4}" />
               </label>
             </div>
             <div class="checkout-total">
@@ -236,7 +245,7 @@
         <p class="eyebrow">ORDER CONFIRMED</p>
         <h1>See you under<br><em>the lights.</em></h1>
         <p>Your tickets have been issued with a cryptographically signed rotating QR token.</p>
-        <div class="ticket-stub" id="latestTicketStub" style="cursor:pointer;" title="Click to view digital ticket & dynamic QR">
+        <div class="ticket-stub" id="latestTicketStub" role="button" tabindex="0" style="cursor:pointer;" title="Click to view digital ticket & dynamic QR" aria-label="View digital ticket and dynamic QR">
           <div>
             <p>AFTERLIGHT WORLD TOUR</p>
             <b id="confirmEventName">The Midnight Stations</b>
@@ -383,9 +392,9 @@
     </main>
 
     <!-- MODAL 1: FAIRNESS EXPLANATION -->
-    <div id="modal" class="modal" aria-hidden="true">
+    <div id="modal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content">
-        <button class="modal-close" data-action="close-modal">×</button>
+        <button class="modal-close" data-action="close-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">FAIRNESS BY DESIGN</p>
         <h2>Every fan gets a real shot.</h2>
         <p>Gatehouse meters demand through a verified waiting room, only reserves inventory with a short transaction-safe lease, and makes each payment retry safe with idempotency keys. That means zero overselling, fewer bots, and a clear recovery path when network interruptions happen.</p>
@@ -398,9 +407,9 @@
     </div>
 
     <!-- MODAL 2: DYNAMIC ROTATING QR TICKET & LIFECYCLE (US-09, FR-TX-05) -->
-    <div id="qrModal" class="modal" aria-hidden="true">
+    <div id="qrModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content qr-modal-content">
-        <button class="modal-close" data-action="close-qr-modal">×</button>
+        <button class="modal-close" data-action="close-qr-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">DIGITAL CREDENTIAL · ANTI-SCREENSHOT</p>
         <h2 id="qrTicketEvent">The Midnight Stations</h2>
         <p id="qrTicketMeta" style="color:var(--muted);font-size:13px;margin:0 0 16px;"></p>
@@ -427,9 +436,9 @@
     </div>
 
     <!-- MODAL 3: DISTRIBUTED TRACE EXPLORER (FR-OP-02, US-07) -->
-    <div id="traceModal" class="modal" aria-hidden="true">
+    <div id="traceModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content trace-modal-content">
-        <button class="modal-close" data-action="close-trace-modal">×</button>
+        <button class="modal-close" data-action="close-trace-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">PLATFORM OBSERVABILITY</p>
         <h2>Distributed Trace Explorer</h2>
         <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Inspect saga execution, outbox publication, and transaction idempotency across serverless boundaries.</p>
@@ -448,9 +457,9 @@
     </div>
 
     <!-- MODAL 4: ADMISSION POLICY CONTROLLER (FR-Q-02, FR-Q-04) -->
-    <div id="policyModal" class="modal" aria-hidden="true">
+    <div id="policyModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content">
-        <button class="modal-close" data-action="close-policy-modal">×</button>
+        <button class="modal-close" data-action="close-policy-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">QUEUE CONTROLLER</p>
         <h2>Admission Policy Configuration</h2>
         <p style="font-size:13px;color:var(--muted);margin-bottom:18px;">Tune waiting room metering algorithms and starvation limits in real time.</p>
@@ -477,9 +486,9 @@
     </div>
 
     <!-- MODAL 5: CREATE EVENT MODAL (FR-EM-01, FR-EM-02) -->
-    <div id="createEventModal" class="modal" aria-hidden="true">
+    <div id="createEventModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content">
-        <button class="modal-close" data-action="close-create-event-modal">×</button>
+        <button class="modal-close" data-action="close-create-event-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">ORGANIZER ADMIN</p>
         <h2>Create New Event</h2>
         <form id="createEventForm">
@@ -511,9 +520,9 @@
     </div>
 
     <!-- MODAL 6: VERIFIED FAN IDENTITY & ENTITLEMENT (Section 4.5, US-10) -->
-    <div id="profileModal" class="modal" aria-hidden="true">
+    <div id="profileModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content">
-        <button class="modal-close" data-action="close-profile-modal">×</button>
+        <button class="modal-close" data-action="close-profile-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">VERIFIED FAN IDENTITY</p>
         <h2>Dikshit Kumar</h2>
         <p style="color:var(--muted);font-size:13px;margin:0 0 18px;">Account ID: <code>USR-71275-DK</code> · Session bound via WebAuthn</p>
@@ -540,9 +549,9 @@
     </div>
 
     <!-- MODAL 7: VIEW ALL EVENTS CATALOG MODAL -->
-    <div id="catalogModal" class="modal" aria-hidden="true">
+    <div id="catalogModal" class="modal" aria-hidden="true" role="dialog">
       <div class="modal-content" style="max-width:700px;">
-        <button class="modal-close" data-action="close-catalog-modal">×</button>
+        <button class="modal-close" data-action="close-catalog-modal" aria-label="Close dialog">×</button>
         <p class="eyebrow">EVENT CATALOG</p>
         <h2>Upcoming & Live On-Sales</h2>
         <div id="fullCatalogGrid" class="catalog-grid" style="margin-top:18px;"></div>
